@@ -1,0 +1,33 @@
+# ======================
+# FRONTEND
+# ======================
+
+frontend/node_modules
+frontend/dist
+
+# ======================
+# BACKEND
+# ======================
+
+backend/target
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# ======================
+# ENV & SECRET
+# ======================
+
+backend/.env
+backend/src/main/resources/application.properties
+
+# ======================
+# VS CODE
+# ======================
+
+.vscode
+
+# ======================
+# OS FILES
+# ======================
+
+.DS_Store
+Thumbs.db
