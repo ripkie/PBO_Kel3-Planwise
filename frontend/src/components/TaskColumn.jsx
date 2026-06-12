@@ -1,7 +1,7 @@
 import { Draggable, Droppable } from '@hello-pangea/dnd';
 import TaskCard from './TaskCard';
 
-function TaskColumn({ column }) {
+function TaskColumn({ column, onEdit, onDelete, onAddTask }) {
   return (
     <div className="task-column">
       <div className="column-header">
@@ -10,7 +10,7 @@ function TaskColumn({ column }) {
           <strong>{column.title}</strong>
           <span className="count">{column.tasks.length}</span>
         </div>
-        <button>＋</button>
+        <button onClick={() => onAddTask(column.id)}>＋</button>
       </div>
 
       <Droppable droppableId={column.id}>
@@ -28,13 +28,13 @@ function TaskColumn({ column }) {
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
                   >
-                    <TaskCard task={task} />
+                    <TaskCard task={task} onEdit={onEdit} onDelete={onDelete} />
                   </div>
                 )}
               </Draggable>
             ))}
             {provided.placeholder}
-            <button className="add-card-btn">＋ Add another task</button>
+            <button className="add-card-btn" onClick={() => onAddTask(column.id)}>＋ Add another task</button>
           </div>
         )}
       </Droppable>
