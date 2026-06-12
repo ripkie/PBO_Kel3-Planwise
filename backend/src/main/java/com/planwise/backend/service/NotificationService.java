@@ -15,29 +15,56 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    public List<NotificationResponseDTO> getByUser(String userId) {
-        return notificationRepository.findByUserId(userId).stream()
-            .map(this::toDTO).toList();
+    // Mengirim notifikasi ke user (send)
+    public Notification send(Task task, User user, String pesan) {
+        Notification notif = Notification.builder()
+                .id(UUID.randomUUID().toString())
+                .task(task)
+                .user(user)
+                .pesan(pesan)
+                .isRead(false)
+                .build();
+        return notificationRepository.save(notif);
     }
 
-    public List<NotificationResponseDTO> getUnreadByUser(String userId) {
-        return notificationRepository.findByUserIdAndIsRead(userId, false).stream()
-            .map(this::toDTO).toList();
+    // Menandai notifikasi sudah dibaca (markAsRead)
+    public Notification markAsRead(String notifId) {
+        Notification notif = notificationRepository.findById(notifId)
+                .orElseThrow(() -> new RuntimeException("Notification tidak ditemukan: " + notifId));
+        notif.setRead(true);
+        return notificationRepository.save(notif);
     }
 
-    public NotificationResponseDTO markAsRead(String id) {
-        Notification n = notificationRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Notifikasi tidak ditemukan: " + id));
-        n.setRead(true);
-        return toDTO(notificationRepository.save(n));
+    // Ambil semua notifikasi milik user
+    public List<Notification> getByUser(String userId) {
+        return notificationRepository.findByUserIdOrderByIdDesc(userId);
     }
 
-    private NotificationResponseDTO toDTO(Notification n) {
-        return NotificationResponseDTO.builder()
-            .id(n.getId())
-            .pesan(n.getPesan())
-            .taskId(n.getTask() != null ? n.getTask().getId() : null)
-            .isRead(n.isRead())
-            .build();
+    // Ambil notifikasi yang belum dibaca
+    public List<Notification> getUnread(String userId) {
+        return notificationRepository.findByUserIdAndIsReadFalse(userId);
+    }
+
+    // getMessage (isi pesan notifikasi)
+    public String getMessage(String notifId) {
+        return notificationRepository.findById(notifId)
+                .map(Notification::getPesan)
+                .orElse("");
+    }
+    // Tandai semua sebagai sudah dibaca
+    public void markAllAsRead(String userId) {
+        List<Notification> unread = notificationRepository.findByUserIdAndIsReadFalse(userId);
+        unread.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(unread);
+    }
+
+    // Hapus satu notifikasi
+    public void deleteNotification(String notifId) {
+        notificationRepository.deleteById(notifId);
+    }
+
+    // Hapus semua notifikasi yang sudah dibaca milik user
+    public void deleteReadNotifications(String userId) {
+        notificationRepository.deleteByUserIdAndIsReadTrue(userId);
     }
 }

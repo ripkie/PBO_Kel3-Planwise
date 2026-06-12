@@ -1,48 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
 import Layout from '../components/Layout';
 import TaskColumn from '../components/TaskColumn';
+import HistoryPanel from '../components/HistoryPanel';
+import { getTasks, createTask, updateTaskStatus, deleteTask } from '../services/taskService';
 
-const initialColumns = [
-  {
-    id: 'todo',
-    title: 'To Do',
-    status: 'todo',
-    tasks: [
-      { id: 'task-1', title: 'Buat ERD Database', priority: 'Low', date: '22 Mei 2024' },
-      { id: 'task-2', title: 'Studi Literatur', priority: 'Medium', date: '21 Mei 2024' },
-      { id: 'task-3', title: 'Desain UI Wireframe', priority: 'Low', date: '25 Mei 2024' },
-    ],
-  },
-  {
-    id: 'progress',
-    title: 'In Progress',
-    status: 'progress',
-    tasks: [
-      { id: 'task-4', title: 'Implementasi Login', priority: 'High', date: '20 Mei 2024' },
-      { id: 'task-5', title: 'API Task CRUD', priority: 'Medium', date: '23 Mei 2024' },
-      { id: 'task-6', title: 'Integrasi Frontend', priority: 'Medium', date: '24 Mei 2024' },
-    ],
-  },
-  {
-    id: 'review',
-    title: 'Review',
-    status: 'review',
-    tasks: [
-      { id: 'task-7', title: 'Validasi Form', priority: 'Medium', date: '19 Mei 2024' },
-      { id: 'task-8', title: 'Testing API', priority: 'Low', date: '21 Mei 2024' },
-    ],
-  },
-  {
-    id: 'done',
-    title: 'Done',
-    status: 'done',
-    tasks: [
-      { id: 'task-9', title: 'Setup Project', priority: 'Low', date: '10 Mei 2024' },
-      { id: 'task-10', title: 'Install Dependencies', priority: 'Low', date: '11 Mei 2024' },
-      { id: 'task-11', title: 'Buat Table Users', priority: 'Low', date: '12 Mei 2024' },
-    ],
-  },
+const COLUMNS = [
+  { id: 'todo',     title: 'To Do',       status: 'TODO' },
+  { id: 'progress', title: 'In Progress',  status: 'IN_PROGRESS' },
+  { id: 'review',   title: 'Review',       status: 'REVIEW' },
+  { id: 'done',     title: 'Done',         status: 'DONE' },
 ];
 
 const PRIORITIES = ['Low', 'Medium', 'High'];
@@ -159,7 +126,7 @@ function TaskContent() {
   const [editModal, setEditModal] = useState(null); // { task }
   const [deleteModal, setDeleteModal] = useState(null); // { task }
 
-  const onDragEnd = (result) => {
+  const onDragEnd = async (result) => {
     const { source, destination } = result;
     if (!destination) return;
 
@@ -172,10 +139,10 @@ function TaskContent() {
     const [movedTask] = sourceTasks.splice(source.index, 1);
 
     if (source.droppableId === destination.droppableId) {
-      sourceTasks.splice(destination.index, 0, movedTask);
-      const newColumns = [...columns];
-      newColumns[sourceColumnIndex] = { ...sourceColumn, tasks: sourceTasks };
-      setColumns(newColumns);
+      srcTasks.splice(destination.index, 0, moved);
+      const newCols = [...columns];
+      newCols[srcColIdx] = { ...srcCol, tasks: srcTasks };
+      setColumns(newCols);
       return;
     }
 
@@ -248,8 +215,6 @@ function TaskContent() {
           <h2>Task Board</h2>
           <select>
             <option>All Projects</option>
-            <option>Web Development</option>
-            <option>Database Project</option>
           </select>
         </div>
         <div className="board-actions">
@@ -308,7 +273,6 @@ function TaskContent() {
 
 function TaskPage({ embedded = false }) {
   if (embedded) return <TaskContent />;
-
   return (
     <Layout>
       <TaskContent />

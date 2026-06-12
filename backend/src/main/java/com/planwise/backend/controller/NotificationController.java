@@ -1,11 +1,10 @@
 package com.planwise.backend.controller;
 
-import com.planwise.backend.dto.NotificationResponseDTO;
+import com.planwise.backend.entity.Notification;
 import com.planwise.backend.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -15,21 +14,41 @@ public class NotificationController {
 
     private final NotificationService notificationService;
 
-    /** GET /api/notifications?userId=xxx */
-    @GetMapping
-    public ResponseEntity<List<NotificationResponseDTO>> getByUser(
-        @RequestParam String userId,
-        @RequestParam(required = false) Boolean unreadOnly
-    ) {
-        List<NotificationResponseDTO> result = Boolean.TRUE.equals(unreadOnly)
-            ? notificationService.getUnreadByUser(userId)
-            : notificationService.getByUser(userId);
-        return ResponseEntity.ok(result);
+    // GET /api/notifications/user/{userId} - semua notif user
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Notification>> getByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(notificationService.getByUser(userId));
     }
 
-    /** PATCH /api/notifications/{id}/read */
+    // GET /api/notifications/user/{userId}/unread - notif belum dibaca
+    @GetMapping("/user/{userId}/unread")
+    public ResponseEntity<List<Notification>> getUnread(@PathVariable String userId) {
+        return ResponseEntity.ok(notificationService.getUnread(userId));
+    }
+
+    // PATCH /api/notifications/{id}/read - tandai sudah dibaca
     @PatchMapping("/{id}/read")
-    public ResponseEntity<NotificationResponseDTO> markAsRead(@PathVariable String id) {
+    public ResponseEntity<Notification> markAsRead(@PathVariable String id) {
         return ResponseEntity.ok(notificationService.markAsRead(id));
+    }
+    // PATCH /api/notifications/user/{userId}/read-all
+    @PatchMapping("/user/{userId}/read-all")
+    public ResponseEntity<Void> markAllAsRead(@PathVariable String userId) {
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.ok().build();
+    }
+
+    // DELETE /api/notifications/{id}
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteOne(@PathVariable String id) {
+        notificationService.deleteNotification(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // DELETE /api/notifications/user/{userId}/read
+    @DeleteMapping("/user/{userId}/read")
+    public ResponseEntity<Void> deleteRead(@PathVariable String userId) {
+        notificationService.deleteReadNotifications(userId);
+        return ResponseEntity.noContent().build();
     }
 }

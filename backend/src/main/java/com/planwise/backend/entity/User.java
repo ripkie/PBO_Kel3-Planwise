@@ -1,6 +1,5 @@
 package com.planwise.backend.entity;
 
-import com.planwise.backend.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 

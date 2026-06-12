@@ -14,3 +14,12 @@ export async function updateTaskStatus(taskId, status) {
   const response = await api.put(`/tasks/${taskId}/status`, { status });
   return response.data;
 }
+
+export async function updateTask(taskId, data) {
+  const response = await api.put(`/tasks/${taskId}`, data);
+  return response.data;
+}
+
+export async function deleteTask(taskId) {
+  await api.delete(`/tasks/${taskId}`);
+}
