@@ -27,6 +27,21 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getTasks(labelId, priority, status, sortBy));
     }
 
+    @GetMapping("/kanban")
+    public ResponseEntity<Map<String, List<Task>>> getKanbanBoard() {
+        return ResponseEntity.ok(taskService.getKanbanBoard());
+    }
+
+    @GetMapping("/overdue")
+    public ResponseEntity<List<Task>> getOverdueTasks() {
+        return ResponseEntity.ok(taskService.getOverdueTasks());
+    }
+
+    @GetMapping("/{id}/overdue")
+    public ResponseEntity<Boolean> checkOverdue(@PathVariable String id) {
+        return ResponseEntity.ok(taskService.checkOverdue(id));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Task> getTask(@PathVariable String id) {
         return ResponseEntity.ok(taskService.getTask(id));
@@ -61,5 +76,10 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable String id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/overdue/notify")
+    public ResponseEntity<List<Task>> notifyOverdueTasks() {
+        return ResponseEntity.ok(taskService.notifyOverdueTasks());
     }
 }

@@ -13,6 +13,9 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -217,6 +220,36 @@ public class TaskService {
         taskRepository.delete(task);
     }
 
+    @Transactional(readOnly = true)
+    public Map<String, List<Task>> getKanbanBoard() {
+        Map<String, List<Task>> board = new LinkedHashMap<>();
+
+        board.put("TODO", taskRepository.findByStatusIgnoreCase("TODO"));
+        board.put("IN_PROGRESS", taskRepository.findByStatusIgnoreCase("IN_PROGRESS"));
+        board.put("REVIEW", taskRepository.findByStatusIgnoreCase("REVIEW"));
+        board.put("DONE", taskRepository.findByStatusIgnoreCase("DONE"));
+
+        return board;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Task> getOverdueTasks() {
+        return taskRepository.findAllWithLabels().stream()
+                .filter(task -> task.getDeadline() != null)
+                .filter(task -> task.getDeadline().isBefore(LocalDate.now()))
+                .filter(task -> task.getStatus() == null || !task.getStatus().equalsIgnoreCase("DONE"))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Boolean checkOverdue(String id) {
+        Task task = getTask(id);
+
+        return task.getDeadline() != null
+                && task.getDeadline().isBefore(LocalDate.now())
+                && (task.getStatus() == null || !task.getStatus().equalsIgnoreCase("DONE"));
+    }
+
     private List<Label> resolveLabels(List<String> labelIds) {
         if (labelIds == null || labelIds.isEmpty()) {
             return List.of();
@@ -264,5 +297,26 @@ public class TaskService {
             case "LOW" -> 3;
             default -> 99;
         };
+    }
+    
+    @Transactional
+    public List<Task> notifyOverdueTasks() {
+        List<Task> overdueTasks = getOverdueTasks();
+
+        for (Task task : overdueTasks) {
+            notificationService.send(
+                    task,
+                    null,
+                    "Task '" + task.getJudul() + "' sudah melewati deadline"
+            );
+
+            historyService.historyTask(
+                    task,
+                    "Task melewati deadline",
+                    null
+            );
+        }
+
+        return overdueTasks;
     }
 }
