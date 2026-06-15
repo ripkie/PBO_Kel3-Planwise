@@ -105,6 +105,12 @@ public class TaskService {
 
         Task updatedTask = taskRepository.save(task);
 
+        notificationService.send(
+        updatedTask,
+        null,
+        "Task '" + updatedTask.getJudul() + "' diperbarui"
+        );
+
         historyService.historyTask(
                 updatedTask,
                 "Task diperbarui",
@@ -152,6 +158,12 @@ public class TaskService {
 
         Task updatedTask = taskRepository.save(task);
 
+        notificationService.send(
+        updatedTask,
+        null,
+        "Label '" + label.getNama() + "' ditambahkan ke task '" + updatedTask.getJudul() + "'"
+        );
+
         historyService.historyTask(
                 updatedTask,
                 "Menambahkan label: " + label.getNama(),
@@ -171,6 +183,12 @@ public class TaskService {
 
         Task updatedTask = taskRepository.save(task);
 
+        notificationService.send(
+        updatedTask,
+        null,
+        "Label '" + label.getNama() + "' dihapus dari task '" + updatedTask.getJudul() + "'"
+        );
+
         historyService.historyTask(
                 updatedTask,
                 "Menghapus label: " + label.getNama(),
@@ -188,6 +206,12 @@ public class TaskService {
                 task,
                 "Task dihapus",
                 null
+        );
+
+        notificationService.send(
+        task,
+        null,
+        "Task '" + task.getJudul() + "' dihapus"
         );
 
         taskRepository.delete(task);

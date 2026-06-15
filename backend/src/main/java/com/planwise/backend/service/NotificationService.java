@@ -65,4 +65,12 @@ public class NotificationService {
     public void deleteReadNotifications(String userId) {
         notificationRepository.deleteByUserIdAndIsReadTrue(userId);
     }
+
+    public List<Notification> getAll() {
+    return notificationRepository.findAll();
+    }
+
+    public List<Notification> getAllUnread() {
+        return notificationRepository.findByIsReadFalse();
+    }
 }

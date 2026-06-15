@@ -51,4 +51,19 @@ public class NotificationController {
         notificationService.deleteReadNotifications(userId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping
+    public ResponseEntity<List<Notification>> getAll() {
+        return ResponseEntity.ok(notificationService.getAll());
+    }
+
+    @GetMapping("/unread")
+    public ResponseEntity<List<Notification>> getAllUnread() {
+        return ResponseEntity.ok(notificationService.getAllUnread());
+    }
+
+    @GetMapping("/{id}/message")
+    public ResponseEntity<String> getMessage(@PathVariable String id) {
+        return ResponseEntity.ok(notificationService.getMessage(id));
+    }
 }
