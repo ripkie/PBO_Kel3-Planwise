@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface HistoryRepository extends JpaRepository<History, String> {
     List<History> findByTaskIdOrderByHistoryAtDesc(String taskId);
-    List<History> findByManajemenTaskIdOrderByHistoryAtDesc(String manajemenTaskId);
+    List<History> findByManagementTaskIdOrderByHistoryAtDesc(String managementTaskId);
 }

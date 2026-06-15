@@ -1,14 +1,20 @@
 package com.planwise.backend.entity;
 
+import com.planwise.backend.interfaces.Trackable;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tasks")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Task {
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class Task implements Trackable {
 
     @Id
     private String id;
@@ -32,6 +38,57 @@ public class Task {
     private String taskType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "manajemen_task_id")
-    private ManajemenTask manajemenTask;
+    @JoinColumn(name = "management_task_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private ManagementTask managementTask;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_labels",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "label_id")
+    )
+    @Builder.Default
+    private List<Label> labels = new ArrayList<>();
+
+    public void changeStatus(String status) {
+        this.status = status;
+    }
+
+    public void setDeadline(LocalDate date) {
+        this.deadline = date;
+    }
+
+    public void setPriority(String priority) {
+        this.prioritas = priority;
+    }
+
+    public void updateDeskripsi(String desc) {
+        this.deskripsi = desc;
+    }
+
+    public void addLabel(Label label) {
+        if (labels == null) {
+            labels = new ArrayList<>();
+        }
+        boolean exists = labels.stream().anyMatch(item -> item.getId().equals(label.getId()));
+        if (!exists) {
+            labels.add(label);
+        }
+    }
+
+    public void removeLabel(Label label) {
+        if (labels != null) {
+            labels.removeIf(item -> item.getId().equals(label.getId()));
+        }
+    }
+
+    @Override
+    public void updateStatus(String status) {
+        this.status = status;
+    }
+
+    public String getType() {
+        return taskType;
+    }
 }

@@ -22,7 +22,7 @@ public class HistoryService {
                 .action(action)
                 .historyAt(Instant.now())
                 .historyBy(doneBy)
-                .manajemenTask(task.getManajemenTask())
+                .managementTask(task.getManagementTask())
                 .build();
         return historyRepository.save(history);
     }

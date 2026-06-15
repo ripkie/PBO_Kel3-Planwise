@@ -27,6 +27,6 @@ public class History {
     private User historyBy;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "manajemen_task_id")
-    private ManajemenTask manajemenTask;
+    @JoinColumn(name = "management_task_id")
+    private ManagementTask managementTask;
 }
