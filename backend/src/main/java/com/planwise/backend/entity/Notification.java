@@ -22,6 +22,7 @@ public class Notification {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Builder.Default
     @Column(name = "is_read", nullable = false)
     private boolean isRead = false;
 }

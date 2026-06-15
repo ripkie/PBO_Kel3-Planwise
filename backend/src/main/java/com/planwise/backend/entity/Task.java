@@ -2,6 +2,7 @@ package com.planwise.backend.entity;
 
 import com.planwise.backend.interfaces.Trackable;
 
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,6 +13,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "tasks")
+@Inheritance(strategy = InheritanceType.JOINED)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Task implements Trackable {
