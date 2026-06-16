@@ -1,24 +1,39 @@
 package com.planwise.backend.entity;
 
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class GroupTask extends Task {
 
-    @ElementCollection
-    private List<String> members = new ArrayList<>();
+    @ManyToMany
+    @JoinTable(
+            name = "group_task_members",
+            joinColumns = @JoinColumn(name = "group_task_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<User> members = new ArrayList<>();
 
-    public void addMember(String member) {
+    @ManyToOne
+    @JoinColumn(name = "assigned_to_id")
+    private User assignedTo;
+
+    public void addMember(User user) {
         if (members == null) {
             members = new ArrayList<>();
         }
-        members.add(member);
+        members.add(user);
+    }
+
+    public void assignTo(User user) {
+        this.assignedTo = user;
     }
 
     @Override
