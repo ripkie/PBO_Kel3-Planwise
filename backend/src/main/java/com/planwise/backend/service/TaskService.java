@@ -3,28 +3,27 @@ package com.planwise.backend.service;
 import com.planwise.backend.dto.TaskRequest;
 import com.planwise.backend.entity.Label;
 import com.planwise.backend.entity.Task;
+import com.planwise.backend.entity.User;
 import com.planwise.backend.repository.LabelRepository;
 import com.planwise.backend.repository.TaskRepository;
+import com.planwise.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.planwise.backend.entity.User;
-import com.planwise.backend.repository.UserRepository;
 
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-
 public class TaskService {
-    private final NotificationService notificationService;
 
+    private final NotificationService notificationService;
     private final TaskRepository taskRepository;
     private final LabelRepository labelRepository;
     private final HistoryService historyService;
@@ -71,8 +70,6 @@ public class TaskService {
         return taskRepository.findByOwnerIdWithLabels(userId);
     }
 
-    
-
     @Transactional
     public Task createTask(TaskRequest request) {
         User owner = null;
@@ -81,6 +78,7 @@ public class TaskService {
             owner = userRepository.findById(request.ownerId())
                     .orElseThrow(() -> new RuntimeException("Owner tidak ditemukan: " + request.ownerId()));
         }
+
         Task task = Task.builder()
                 .id(UUID.randomUUID().toString())
                 .judul(request.judul())
@@ -94,19 +92,18 @@ public class TaskService {
                 .owner(owner)
                 .build();
 
-
         Task savedTask = taskRepository.save(task);
 
         notificationService.send(
                 savedTask,
-                 null,
-                 "Task baru dibuat: " + savedTask.getJudul()
+                savedTask.getOwner(),
+                "Task baru dibuat: " + savedTask.getJudul()
         );
 
         historyService.historyTask(
                 savedTask,
                 "Task dibuat",
-                null
+                savedTask.getOwner()
         );
 
         return savedTask;
@@ -127,15 +124,15 @@ public class TaskService {
         Task updatedTask = taskRepository.save(task);
 
         notificationService.send(
-        updatedTask,
-        null,
-        "Task '" + updatedTask.getJudul() + "' diperbarui"
+                updatedTask,
+                updatedTask.getOwner(),
+                "Task '" + updatedTask.getJudul() + "' diperbarui"
         );
 
         historyService.historyTask(
                 updatedTask,
                 "Task diperbarui",
-                null
+                updatedTask.getOwner()
         );
 
         return updatedTask;
@@ -153,17 +150,14 @@ public class TaskService {
 
         notificationService.send(
                 updatedTask,
-                null,
-                "Status task '" +
-                updatedTask.getJudul() +
-                "' berubah menjadi " +
-                updatedTask.getStatus()
+                updatedTask.getOwner(),
+                "Status task '" + updatedTask.getJudul() + "' berubah menjadi " + updatedTask.getStatus()
         );
 
         historyService.historyTask(
                 updatedTask,
                 "Status diubah dari " + oldStatus + " ke " + status,
-                null
+                updatedTask.getOwner()
         );
 
         return updatedTask;
@@ -180,15 +174,15 @@ public class TaskService {
         Task updatedTask = taskRepository.save(task);
 
         notificationService.send(
-        updatedTask,
-        null,
-        "Label '" + label.getNama() + "' ditambahkan ke task '" + updatedTask.getJudul() + "'"
+                updatedTask,
+                updatedTask.getOwner(),
+                "Label '" + label.getNama() + "' ditambahkan ke task '" + updatedTask.getJudul() + "'"
         );
 
         historyService.historyTask(
                 updatedTask,
                 "Menambahkan label: " + label.getNama(),
-                null
+                updatedTask.getOwner()
         );
 
         return updatedTask;
@@ -205,15 +199,15 @@ public class TaskService {
         Task updatedTask = taskRepository.save(task);
 
         notificationService.send(
-        updatedTask,
-        null,
-        "Label '" + label.getNama() + "' dihapus dari task '" + updatedTask.getJudul() + "'"
+                updatedTask,
+                updatedTask.getOwner(),
+                "Label '" + label.getNama() + "' dihapus dari task '" + updatedTask.getJudul() + "'"
         );
 
         historyService.historyTask(
                 updatedTask,
                 "Menghapus label: " + label.getNama(),
-                null
+                updatedTask.getOwner()
         );
 
         return updatedTask;
@@ -226,13 +220,13 @@ public class TaskService {
         historyService.historyTask(
                 task,
                 "Task dihapus",
-                null
+                task.getOwner()
         );
 
         notificationService.send(
-        task,
-        null,
-        "Task '" + task.getJudul() + "' dihapus"
+                task,
+                task.getOwner(),
+                "Task '" + task.getJudul() + "' dihapus"
         );
 
         taskRepository.delete(task);
@@ -266,6 +260,27 @@ public class TaskService {
         return task.getDeadline() != null
                 && task.getDeadline().isBefore(LocalDate.now())
                 && (task.getStatus() == null || !task.getStatus().equalsIgnoreCase("DONE"));
+    }
+
+    @Transactional
+    public List<Task> notifyOverdueTasks() {
+        List<Task> overdueTasks = getOverdueTasks();
+
+        for (Task task : overdueTasks) {
+            notificationService.send(
+                    task,
+                    task.getOwner(),
+                    "Task '" + task.getJudul() + "' sudah melewati deadline"
+            );
+
+            historyService.historyTask(
+                    task,
+                    "Task melewati deadline",
+                    task.getOwner()
+            );
+        }
+
+        return overdueTasks;
     }
 
     private List<Label> resolveLabels(List<String> labelIds) {
@@ -315,26 +330,5 @@ public class TaskService {
             case "LOW" -> 3;
             default -> 99;
         };
-    }
-    
-    @Transactional
-    public List<Task> notifyOverdueTasks() {
-        List<Task> overdueTasks = getOverdueTasks();
-
-        for (Task task : overdueTasks) {
-            notificationService.send(
-                    task,
-                    null,
-                    "Task '" + task.getJudul() + "' sudah melewati deadline"
-            );
-
-            historyService.historyTask(
-                    task,
-                    "Task melewati deadline",
-                    null
-            );
-        }
-
-        return overdueTasks;
     }
 }

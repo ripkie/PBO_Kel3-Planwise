@@ -24,19 +24,27 @@ function DashboardPage() {
   async function loadDashboard() {
     setLoading(true);
     try {
-      const [taskData, overdueData, historyData, notifData] = await Promise.all([
+      const [taskResult, overdueResult, historyResult, notifResult] = await Promise.allSettled([
         getTasks(),
         getOverdueTasks(),
         getAllHistorySorted(),
         getNotificationsByUser(),
       ]);
 
+      const taskData = taskResult.status === 'fulfilled' ? taskResult.value : [];
+      const overdueData = overdueResult.status === 'fulfilled' ? overdueResult.value : [];
+      const historyData = historyResult.status === 'fulfilled' ? historyResult.value : [];
+      const notifData = notifResult.status === 'fulfilled' ? notifResult.value : [];
+
+      if (taskResult.status === 'rejected') console.error('Gagal memuat task dashboard:', taskResult.reason);
+      if (overdueResult.status === 'rejected') console.error('Gagal memuat overdue dashboard:', overdueResult.reason);
+      if (historyResult.status === 'rejected') console.error('Gagal memuat history dashboard:', historyResult.reason);
+      if (notifResult.status === 'rejected') console.error('Gagal memuat notifikasi dashboard:', notifResult.reason);
+
       setTasks(Array.isArray(taskData) ? taskData : []);
       setOverdue(Array.isArray(overdueData) ? overdueData : []);
       setHistories(Array.isArray(historyData) ? historyData : []);
       setNotifications(Array.isArray(notifData) ? notifData : []);
-    } catch (err) {
-      console.error('Gagal memuat dashboard:', err);
     } finally {
       setLoading(false);
     }
