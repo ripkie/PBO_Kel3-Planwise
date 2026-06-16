@@ -33,6 +33,13 @@ public class HistoryController {
         return ResponseEntity.ok(historyService.getHistoryByManagementTask(managementTaskId));
     }
 
+
+    // GET /api/histories/user/{userId} - riwayat milik user login
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<History>> getByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(historyService.getHistoryByUser(userId));
+    }
+
     @GetMapping("/sorted")
     public ResponseEntity<List<History>> getAllSorted() {
         return ResponseEntity.ok(historyService.getAllHistorySorted());

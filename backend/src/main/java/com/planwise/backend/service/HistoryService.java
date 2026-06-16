@@ -48,6 +48,10 @@ public class HistoryService {
     }
 
     public List<History> getAllHistorySorted() {
-    return historyRepository.findAllByOrderByHistoryAtDesc();
-}
+        return historyRepository.findAllByOrderByHistoryAtDesc();
+    }
+
+    public List<History> getHistoryByUser(String userId) {
+        return historyRepository.findMyHistory(userId);
+    }
 }

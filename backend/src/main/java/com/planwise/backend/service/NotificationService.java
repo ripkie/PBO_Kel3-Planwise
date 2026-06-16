@@ -15,10 +15,16 @@ public class NotificationService {
 
     // Mengirim notifikasi ke user (send)
     public Notification send(Task task, User user, String pesan) {
+        User targetUser = user;
+
+        if (targetUser == null && task != null) {
+            targetUser = task.getOwner();
+        }
+
         Notification notif = Notification.builder()
                 .id(UUID.randomUUID().toString())
                 .task(task)
-                .user(user)
+                .user(targetUser)
                 .pesan(pesan)
                 .isRead(false)
                 .build();
