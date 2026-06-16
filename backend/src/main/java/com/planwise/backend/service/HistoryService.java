@@ -27,6 +27,11 @@ public class HistoryService {
         return historyRepository.save(history);
     }
 
+    // Menampilkan riwayat berdasarkan management task / board
+    public List<History> getHistoryByManagementTask(String managementTaskId) {
+        return historyRepository.findByManagementTaskIdOrderByHistoryAtDesc(managementTaskId);
+    }
+
     // Menampilkan riwayat berdasarkan task tertentu
     public List<History> getHistoryByTask(String taskId) {
         return historyRepository.findByTaskIdOrderByHistoryAtDesc(taskId);
