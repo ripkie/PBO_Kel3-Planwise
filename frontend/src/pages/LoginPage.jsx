@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { loginUser, registerUser } from '../services/authService';
 
 const initialLogin = { email: '', password: '' };
-const initialRegister = { nama: '', email: '', password: '', role: 'USER' };
+const initialRegister = { nama: '', email: '', password: '' };
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -116,15 +116,6 @@ function LoginPage() {
               onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
             />
 
-            <label>Role</label>
-            <select
-              value={registerForm.role}
-              onChange={(e) => setRegisterForm({ ...registerForm, role: e.target.value })}
-            >
-              <option value="USER">USER</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="STUDENT">STUDENT</option>
-            </select>
 
             <button className="primary-btn full-width" type="submit" disabled={loading}>
               {loading ? 'Loading...' : 'Register'}

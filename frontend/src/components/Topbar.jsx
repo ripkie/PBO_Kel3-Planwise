@@ -91,7 +91,7 @@ function Topbar() {
         <div className="avatar">{getUserInitials(user)}</div>
         <div className="user-chip">
           <strong>{user?.nama || 'User'}</strong>
-          <p>{user?.role || 'USER'}</p>
+          <p>{user?.email || 'PlanWise member'}</p>
         </div>
         <button className="logout-btn" onClick={handleLogout}>Logout</button>
       </div>
