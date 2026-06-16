@@ -5,9 +5,18 @@ function TaskCard({ task, onSelect }) {
         <h4>{task.title}</h4>
         <button onClick={(e) => { e.stopPropagation(); }}>⋯</button>
       </div>
-      <span className={`priority ${task.priority?.toLowerCase()}`}>{task.priority}</span>
+
+      <div className="task-badges">
+        <span className={`priority ${task.priority?.toLowerCase()}`}>{task.priority}</span>
+        {task.labels?.map(label => (
+          <span className="task-label" key={label.id} style={{ borderColor: label.warna, color: label.warna }}>
+            {label.nama}
+          </span>
+        ))}
+      </div>
+
       <div className="task-footer">
-        <span>▣ {task.date}</span>
+        <span>▣ {task.date || '-'}</span>
         <span className="mini-avatar">AM</span>
       </div>
     </div>

@@ -1,56 +1,137 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
-import TaskBoard from './TaskPage';
+import { getCurrentUser } from '../services/authService';
+import { getTasks, getOverdueTasks } from '../services/taskService';
+import { getAllHistorySorted } from '../services/historyService';
+import { getNotificationsByUser } from '../services/notificationService';
 
 function DashboardPage() {
+  const user = getCurrentUser();
+  const [tasks, setTasks] = useState([]);
+  const [overdue, setOverdue] = useState([]);
+  const [histories, setHistories] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  async function loadDashboard() {
+    setLoading(true);
+    try {
+      const [taskData, overdueData, historyData, notifData] = await Promise.all([
+        getTasks(),
+        getOverdueTasks(),
+        getAllHistorySorted(),
+        getNotificationsByUser(),
+      ]);
+
+      setTasks(Array.isArray(taskData) ? taskData : []);
+      setOverdue(Array.isArray(overdueData) ? overdueData : []);
+      setHistories(Array.isArray(historyData) ? historyData : []);
+      setNotifications(Array.isArray(notifData) ? notifData : []);
+    } catch (err) {
+      console.error('Gagal memuat dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const stats = useMemo(() => {
+    const done = tasks.filter((task) => task.status === 'DONE').length;
+    const inProgress = tasks.filter((task) => task.status === 'IN_PROGRESS').length;
+    const high = tasks.filter((task) => task.prioritas === 'HIGH').length;
+    return { total: tasks.length, done, inProgress, high };
+  }, [tasks]);
+
+  const completion = stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
+  const upcoming = tasks
+    .filter((task) => task.deadline && task.status !== 'DONE')
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+    .slice(0, 5);
+
+  const recentTasks = tasks.slice(0, 5);
+  const unreadCount = notifications.filter((notif) => !notif.isRead).length;
+
   return (
     <Layout>
       <section className="welcome-grid">
         <div className="welcome-card">
-          <h1>Welcome back, Rifki!</h1>
-          <p>You have 12 tasks in total. Keep going and finish what you started!</p>
+          <h1>Welcome back, {user?.nama || 'User'}!</h1>
+          <p>
+            {loading
+              ? 'Memuat data dashboard...'
+              : `Kamu punya ${stats.total} task, ${stats.inProgress} sedang dikerjakan, dan ${stats.done} selesai.`}
+          </p>
         </div>
         <div className="date-card">
-          <strong>Selasa, 20 Mei 2024</strong>
-          <p>Good day to be productive! ✨</p>
+          <strong>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+          <p>{unreadCount} notifikasi belum dibaca ✨</p>
         </div>
       </section>
 
       <section className="stats-grid">
-        <StatCard icon="▤" value="12" label="Total Tasks" variant="bark" />
-        <StatCard icon="◷" value="5" label="In Progress" variant="beeswax" />
-        <StatCard icon="✓" value="7" label="Completed" variant="bamboo" />
-        <StatCard icon="⚑" value="3" label="High Priority" variant="accent" />
+        <StatCard icon="▤" value={stats.total} label="Total Tasks" variant="bark" />
+        <StatCard icon="◷" value={stats.inProgress} label="In Progress" variant="beeswax" />
+        <StatCard icon="✓" value={stats.done} label="Completed" variant="bamboo" />
+        <StatCard icon="⚑" value={stats.high} label="High Priority" variant="accent" />
       </section>
 
-      <TaskBoard embedded />
-
-      <section className="bottom-grid">
+      <section className="dashboard-grid">
         <div className="panel-card">
           <div className="panel-header">
-            <h3>Upcoming Deadlines</h3>
-            <button>View all</button>
+            <h3>Recent Tasks</h3>
+            <Link className="mini-link" to="/board">Open Board</Link>
           </div>
-          <ul className="deadline-list">
-            <li><span>▣ Implementasi Login</span><b className="priority high">High</b><em>20 Mei 2024</em></li>
-            <li><span>▣ API Task CRUD</span><b className="priority medium">Medium</b><em>23 Mei 2024</em></li>
-            <li><span>▣ Desain UI Wireframe</span><b className="priority low">Low</b><em>25 Mei 2024</em></li>
-          </ul>
+          <div className="simple-list">
+            {recentTasks.length === 0 && <p>Belum ada task.</p>}
+            {recentTasks.map((task) => (
+              <div className="simple-row" key={task.id}>
+                <div>
+                  <strong>{task.judul}</strong>
+                  <span>{task.deskripsi || 'Tidak ada deskripsi'}</span>
+                </div>
+                <b className={`priority ${task.prioritas?.toLowerCase()}`}>{task.prioritas || '-'}</b>
+              </div>
+            ))}
+          </div>
         </div>
+
         <div className="panel-card">
           <div className="panel-header">
             <h3>Task Progress</h3>
-            <button>This Week</button>
+            <Link className="mini-link" to="/history">View History</Link>
           </div>
           <div className="progress-summary">
-            <div className="progress-circle">58%<span>Completed</span></div>
-            <div className="progress-bars">
-              <p>Completed <span style={{ width: '58%' }}></span></p>
-              <p>In Progress <span style={{ width: '42%' }}></span></p>
-              <p>To Do <span style={{ width: '70%' }}></span></p>
+            <div className="progress-circle">{completion}%<span>Completed</span></div>
+            <div className="recent-history">
+              {histories.slice(0, 4).map((history) => (
+                <p key={history.id}><strong>{history.action}</strong><span>{new Date(history.historyAt).toLocaleString('id-ID')}</span></p>
+              ))}
+              {histories.length === 0 && <p>Belum ada riwayat aktivitas.</p>}
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="panel-card page-section">
+        <div className="panel-header">
+          <h3>Upcoming Deadlines</h3>
+          <button>{overdue.length} overdue</button>
+        </div>
+        <ul className="deadline-list">
+          {upcoming.length === 0 && <li><span>Belum ada deadline aktif.</span></li>}
+          {upcoming.map((task) => (
+            <li key={task.id}>
+              <span>▣ {task.judul}</span>
+              <b className={`priority ${task.prioritas?.toLowerCase()}`}>{task.prioritas}</b>
+              <em>{task.deadline}</em>
+            </li>
+          ))}
+        </ul>
       </section>
     </Layout>
   );

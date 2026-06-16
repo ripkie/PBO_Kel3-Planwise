@@ -3,38 +3,71 @@ import { DragDropContext } from '@hello-pangea/dnd';
 import Layout from '../components/Layout';
 import TaskColumn from '../components/TaskColumn';
 import HistoryPanel from '../components/HistoryPanel';
-import { getTasks, createTask, updateTaskStatus, deleteTask } from '../services/taskService';
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  updateTaskStatus,
+  deleteTask,
+  getLabels,
+} from '../services/taskService';
 
 const COLUMNS = [
-  { id: 'todo',     title: 'To Do',       status: 'TODO' },
-  { id: 'progress', title: 'In Progress',  status: 'IN_PROGRESS' },
-  { id: 'review',   title: 'Review',       status: 'REVIEW' },
-  { id: 'done',     title: 'Done',         status: 'DONE' },
+  { id: 'todo', title: 'To Do', status: 'TODO' },
+  { id: 'progress', title: 'In Progress', status: 'IN_PROGRESS' },
+  { id: 'review', title: 'Review', status: 'REVIEW' },
+  { id: 'done', title: 'Done', status: 'DONE' },
 ];
 
-const emptyForm = { title: '', description: '', deadline: '', priority: 'LOW' };
+const emptyForm = { title: '', description: '', deadline: '', priority: 'LOW', labelIds: [] };
+
+function mapTask(task) {
+  return {
+    id: task.id,
+    title: task.judul,
+    description: task.deskripsi || '',
+    priority: task.prioritas || 'LOW',
+    date: task.deadline || '',
+    status: task.status || 'TODO',
+    labels: task.labels || [],
+    type: task.type || task.taskType || 'TASK',
+  };
+}
 
 function TaskContent() {
-  const [columns, setColumns]         = useState(COLUMNS.map(c => ({ ...c, tasks: [] })));
+  const [columns, setColumns] = useState(COLUMNS.map(c => ({ ...c, tasks: [] })));
+  const [labels, setLabels] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [showForm, setShowForm]       = useState(false);
-  const [editTask, setEditTask]       = useState(null);
-  const [form, setForm]               = useState(emptyForm);
+  const [showForm, setShowForm] = useState(false);
+  const [editTask, setEditTask] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [filters, setFilters] = useState({ labelId: '', priority: '', status: '', sortBy: '' });
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchLabels();
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [filters]);
+
+  async function fetchLabels() {
+    try {
+      const data = await getLabels();
+      setLabels(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Gagal fetch labels:', err);
+    }
+  }
 
   async function fetchTasks() {
     try {
-      const data = await getTasks();
+      const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
+      const data = await getTasks(params);
+      const list = Array.isArray(data) ? data : [];
       const newColumns = COLUMNS.map(col => ({
         ...col,
-        tasks: data.filter(t => t.status === col.status).map(t => ({
-          id: t.id,
-          title: t.judul,
-          priority: t.prioritas,
-          date: t.deadline,
-          status: t.status,
-        })),
+        tasks: list.filter(t => t.status === col.status).map(mapTask),
       }));
       setColumns(newColumns);
     } catch (err) {
@@ -46,12 +79,15 @@ function TaskContent() {
     const { source, destination } = result;
     if (!destination) return;
 
-    const srcColIdx  = columns.findIndex(c => c.id === source.droppableId);
-    const dstColIdx  = columns.findIndex(c => c.id === destination.droppableId);
-    const srcCol     = columns[srcColIdx];
-    const dstCol     = columns[dstColIdx];
-    const srcTasks   = [...srcCol.tasks];
-    const [moved]    = srcTasks.splice(source.index, 1);
+    const srcColIdx = columns.findIndex(c => c.id === source.droppableId);
+    const dstColIdx = columns.findIndex(c => c.id === destination.droppableId);
+    if (srcColIdx < 0 || dstColIdx < 0) return;
+
+    const srcCol = columns[srcColIdx];
+    const dstCol = columns[dstColIdx];
+    const srcTasks = [...srcCol.tasks];
+    const [moved] = srcTasks.splice(source.index, 1);
+    if (!moved) return;
 
     if (source.droppableId === destination.droppableId) {
       srcTasks.splice(destination.index, 0, moved);
@@ -73,7 +109,7 @@ function TaskContent() {
       await updateTaskStatus(moved.id, dstCol.status);
     } catch (err) {
       console.error('Gagal update status:', err);
-      fetchTasks(); // rollback
+      fetchTasks();
     }
   };
 
@@ -85,17 +121,42 @@ function TaskContent() {
 
   function openEdit(task) {
     setEditTask(task);
-    setForm({ title: task.title, description: '', deadline: task.date, priority: task.priority });
+    setForm({
+      title: task.title,
+      description: task.description || '',
+      deadline: task.date || '',
+      priority: task.priority || 'LOW',
+      labelIds: task.labels?.map(label => label.id) || [],
+    });
     setShowForm(true);
+  }
+
+  function toggleLabel(labelId) {
+    setForm(prev => ({
+      ...prev,
+      labelIds: prev.labelIds.includes(labelId)
+        ? prev.labelIds.filter(id => id !== labelId)
+        : [...prev.labelIds, labelId],
+    }));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const payload = {
+      judul: form.title,
+      deskripsi: form.description,
+      deadline: form.deadline || null,
+      prioritas: form.priority,
+      status: editTask ? editTask.status : 'TODO',
+      labelIds: form.labelIds,
+    };
+
     try {
       if (editTask) {
-        await updateTask(editTask.id, { judul: form.title, deadline: form.deadline, prioritas: form.priority });
+        const updated = await updateTask(editTask.id, payload);
+        setSelectedTask(mapTask(updated));
       } else {
-        await createTask({ judul: form.title, deskripsi: form.description, deadline: form.deadline, prioritas: form.priority, status: 'TODO' });
+        await createTask(payload);
       }
       setShowForm(false);
       fetchTasks();
@@ -115,126 +176,154 @@ function TaskContent() {
     }
   }
 
+  function resetFilter() {
+    setFilters({ labelId: '', priority: '', status: '', sortBy: '' });
+  }
+
   return (
-    <section className="board-panel">
-      <div className="board-header">
-        <div>
+    <section className="board-panel board-workspace">
+      <div className="board-header board-header-clean">
+        <div className="board-title-block">
           <h2>Task Board</h2>
-          <select>
-            <option>All Projects</option>
-          </select>
+          <p>Fokus untuk menggeser task berdasarkan progres kerja. Kelola label di halaman Labels.</p>
         </div>
-        <div className="board-actions">
-          <button>⌯ Filter</button>
-          <button>↕ Sort</button>
+
+        <div className="board-actions board-actions-clean">
+          <select value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
+            <option value="">Semua Status</option>
+            <option value="TODO">To Do</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="REVIEW">Review</option>
+            <option value="DONE">Done</option>
+          </select>
+
+          <select value={filters.priority} onChange={e => setFilters({ ...filters, priority: e.target.value })}>
+            <option value="">Semua Prioritas</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+          </select>
+
+          <select value={filters.labelId} onChange={e => setFilters({ ...filters, labelId: e.target.value })}>
+            <option value="">Semua Label</option>
+            {labels.map(label => (
+              <option key={label.id} value={label.id}>{label.nama}</option>
+            ))}
+          </select>
+
+          <select value={filters.sortBy} onChange={e => setFilters({ ...filters, sortBy: e.target.value })}>
+            <option value="">Sort</option>
+            <option value="deadline">Deadline Terdekat</option>
+            <option value="priority">Prioritas Tertinggi</option>
+            <option value="createdAt">Terbaru</option>
+          </select>
+
+          <button onClick={resetFilter}>Reset</button>
           <button className="primary-btn" onClick={openCreate}>＋ Add Task</button>
         </div>
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="kanban-grid">
-          {columns.map(column => (
-            <TaskColumn
-              key={column.id}
-              column={column}
-              onSelect={setSelectedTask}
-            />
-          ))}
-        </div>
-      </DragDropContext>
+      <div className="board-main-area board-main-area-clean full-board-area">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="kanban-grid kanban-grid-clean kanban-grid-wide">
+            {columns.map(column => (
+              <TaskColumn
+                key={column.id}
+                column={column}
+                onSelect={setSelectedTask}
+              />
+            ))}
+          </div>
+        </DragDropContext>
+      </div>
 
-      {/* Modal Form Create/Edit */}
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', width: '400px' }}>
-            <h3 style={{ marginBottom: '16px' }}>{editTask ? 'Edit Task' : 'Tambah Task'}</h3>
+        <div className="modal-backdrop">
+          <div className="task-modal">
+            <h3>{editTask ? 'Edit Task' : 'Tambah Task'}</h3>
             <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ fontSize: '13px', color: '#6b7280' }}>Judul Task</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={e => setForm({ ...form, title: e.target.value })}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', marginTop: '4px' }}
-                  placeholder="Masukkan judul task..."
-                />
+              <label>Judul Task</label>
+              <input
+                required
+                value={form.title}
+                onChange={e => setForm({ ...form, title: e.target.value })}
+                placeholder="Masukkan judul task..."
+              />
+
+              <label>Deskripsi</label>
+              <textarea
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+                placeholder="Deskripsi task..."
+                rows={3}
+              />
+
+              <label>Deadline</label>
+              <input
+                type="date"
+                value={form.deadline}
+                onChange={e => setForm({ ...form, deadline: e.target.value })}
+              />
+
+              <label>Prioritas</label>
+              <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+              </select>
+
+              <label>Label</label>
+              <div className="label-checkbox-grid">
+                {labels.length === 0 && <p>Belum ada label. Tambahkan di halaman Labels.</p>}
+                {labels.map(label => (
+                  <button
+                    type="button"
+                    key={label.id}
+                    className={form.labelIds.includes(label.id) ? 'selected' : ''}
+                    onClick={() => toggleLabel(label.id)}
+                  >
+                    <span style={{ background: label.warna }}></span>
+                    {label.nama}
+                  </button>
+                ))}
               </div>
-              {!editTask && (
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontSize: '13px', color: '#6b7280' }}>Deskripsi</label>
-                  <textarea
-                    value={form.description}
-                    onChange={e => setForm({ ...form, description: e.target.value })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', marginTop: '4px', resize: 'vertical' }}
-                    placeholder="Deskripsi task..."
-                    rows={3}
-                  />
-                </div>
-              )}
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ fontSize: '13px', color: '#6b7280' }}>Deadline</label>
-                <input
-                  type="date"
-                  value={form.deadline}
-                  onChange={e => setForm({ ...form, deadline: e.target.value })}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', marginTop: '4px' }}
-                />
-              </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '13px', color: '#6b7280' }}>Prioritas</label>
-                <select
-                  value={form.priority}
-                  onChange={e => setForm({ ...form, priority: e.target.value })}
-                  style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', marginTop: '4px' }}
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowForm(false)}
-                  style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff', cursor: 'pointer' }}>
-                  Batal
-                </button>
-                <button type="submit"
-                  style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                  {editTask ? 'Simpan' : 'Tambah'}
-                </button>
+
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowForm(false)}>Batal</button>
+                <button type="submit" className="primary-btn">{editTask ? 'Simpan' : 'Tambah'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Drawer Detail Task + History */}
       {selectedTask && (
-        <div style={{ position: 'fixed', top: 0, right: 0, width: '360px', height: '100vh', background: '#fff', borderLeft: '1px solid #e5e7eb', boxShadow: '-4px 0 20px rgba(0,0,0,0.08)', zIndex: 999, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '15px' }}>Detail Task</h3>
-            <button onClick={() => setSelectedTask(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#9ca3af' }}>×</button>
+        <div className="task-drawer">
+          <div className="task-drawer-header">
+            <h3>Detail Task</h3>
+            <button onClick={() => setSelectedTask(null)}>×</button>
           </div>
 
-          <div style={{ padding: '16px', borderBottom: '1px solid #f3f4f6' }}>
-            <h4 style={{ margin: '0 0 8px', fontSize: '16px' }}>{selectedTask.title}</h4>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <div className="task-drawer-body">
+            <h4>{selectedTask.title}</h4>
+            <p>{selectedTask.description || 'Tidak ada deskripsi.'}</p>
+            <div className="task-badges">
               <span className={`priority ${selectedTask.priority?.toLowerCase()}`}>{selectedTask.priority}</span>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>📅 {selectedTask.date}</span>
+              <span className="status-pill todo">{selectedTask.type}</span>
+              <span className="drawer-date">📅 {selectedTask.date || '-'}</span>
+              {selectedTask.labels?.map(label => (
+                <span className="task-label" key={label.id} style={{ borderColor: label.warna, color: label.warna }}>
+                  {label.nama}
+                </span>
+              ))}
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => openEdit(selectedTask)}
-                style={{ flex: 1, padding: '7px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>
-                ✏️ Edit
-              </button>
-              <button onClick={() => handleDelete(selectedTask.id)}
-                style={{ flex: 1, padding: '7px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>
-                🗑 Hapus
-              </button>
+            <div className="drawer-actions">
+              <button onClick={() => openEdit(selectedTask)}>✏️ Edit</button>
+              <button onClick={() => handleDelete(selectedTask.id)}>🗑 Hapus</button>
             </div>
           </div>
 
-          {/* History Panel */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+          <div className="drawer-history">
             <HistoryPanel taskId={selectedTask.id} />
           </div>
         </div>

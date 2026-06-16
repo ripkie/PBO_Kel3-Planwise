@@ -7,18 +7,18 @@ import {
   deleteReadNotifications,
 } from '../services/notificationService';
 
-function NotificationPanel({ userId, onClose }) {
+function NotificationPanel({ onClose }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchNotifications();
-  }, [userId]);
+  }, []);
 
   async function fetchNotifications() {
     setLoading(true);
     try {
-      const data = await getNotificationsByUser(userId);
+      const data = await getNotificationsByUser();
       setNotifications(data);
     } catch (err) {
       console.error('Gagal memuat notifikasi:', err);
@@ -40,7 +40,7 @@ function NotificationPanel({ userId, onClose }) {
 
   async function handleMarkAllRead() {
     try {
-      await markAllAsRead(userId);
+      await markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error(err);
@@ -58,7 +58,7 @@ function NotificationPanel({ userId, onClose }) {
 
   async function handleDeleteRead() {
     try {
-      await deleteReadNotifications(userId);
+      await deleteReadNotifications();
       setNotifications(prev => prev.filter(n => !n.isRead));
     } catch (err) {
       console.error(err);

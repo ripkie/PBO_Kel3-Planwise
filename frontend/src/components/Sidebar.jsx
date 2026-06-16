@@ -3,9 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '⌂' },
   { path: '/tasks', label: 'My Tasks', icon: '☑' },
-  { path: '/tasks', label: 'Board', icon: '▤' },
-  { path: '/tasks', label: 'Calendar', icon: '□' },
-  { path: '/tasks', label: 'Labels', icon: '◇' },
+  { path: '/board', label: 'Board', icon: '▤' },
+  { path: '/calendar', label: 'Calendar', icon: '□' },
+  { path: '/labels', label: 'Labels', icon: '◇' },
+  { path: '/history', label: 'History', icon: '↺' },
 ];
 
 function Sidebar() {
