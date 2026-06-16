@@ -8,6 +8,8 @@ import com.planwise.backend.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.planwise.backend.entity.User;
+import com.planwise.backend.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -26,6 +28,7 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final LabelRepository labelRepository;
     private final HistoryService historyService;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<Task> getTasks(String labelId, String priority, String status, String sortBy) {
@@ -63,8 +66,21 @@ public class TaskService {
                 .orElseThrow(() -> new RuntimeException("Task tidak ditemukan: " + id));
     }
 
+    @Transactional(readOnly = true)
+    public List<Task> getMyTasks(String userId) {
+        return taskRepository.findByOwnerIdWithLabels(userId);
+    }
+
+    
+
     @Transactional
     public Task createTask(TaskRequest request) {
+        User owner = null;
+
+        if (request.ownerId() != null && !request.ownerId().isBlank()) {
+            owner = userRepository.findById(request.ownerId())
+                    .orElseThrow(() -> new RuntimeException("Owner tidak ditemukan: " + request.ownerId()));
+        }
         Task task = Task.builder()
                 .id(UUID.randomUUID().toString())
                 .judul(request.judul())
@@ -75,7 +91,9 @@ public class TaskService {
                 .createdAt(Instant.now())
                 .taskType(request.taskType() == null || request.taskType().isBlank() ? "TASK" : request.taskType())
                 .labels(resolveLabels(request.labelIds()))
+                .owner(owner)
                 .build();
+
 
         Task savedTask = taskRepository.save(task);
 

@@ -40,6 +40,11 @@ public class Task implements Trackable {
     private String taskType;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    private User owner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "management_task_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private ManagementTask managementTask;

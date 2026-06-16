@@ -10,5 +10,6 @@ public record TaskRequest(
         String status,
         String prioritas,
         String taskType,
-        List<String> labelIds
+        List<String> labelIds,
+        String ownerId
 ) {}

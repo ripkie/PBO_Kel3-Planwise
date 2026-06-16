@@ -72,6 +72,11 @@ public class TaskController {
         return ResponseEntity.ok(taskService.removeLabel(taskId, labelId));
     }
 
+    @GetMapping("/my/{userId}")
+    public ResponseEntity<List<Task>> getMyTasks(@PathVariable String userId) {
+        return ResponseEntity.ok(taskService.getMyTasks(userId));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable String id) {
         taskService.deleteTask(id);

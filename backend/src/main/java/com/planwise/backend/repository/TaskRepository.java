@@ -22,4 +22,7 @@ public interface TaskRepository extends JpaRepository<Task, String> {
 
     @Query("SELECT DISTINCT t FROM Task t LEFT JOIN FETCH t.labels l WHERE l.id = :labelId")
     List<Task> findByLabelId(@Param("labelId") String labelId);
+
+    @Query("SELECT DISTINCT t FROM Task t LEFT JOIN FETCH t.labels WHERE t.owner.id = :userId")
+    List<Task> findByOwnerIdWithLabels(@Param("userId") String userId);
 }
