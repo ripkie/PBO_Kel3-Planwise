@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { getTasks } from '../services/taskService';
 import { getUsers } from '../services/userService';
@@ -36,10 +37,11 @@ function getInitials(name = 'User') {
 }
 
 function TasksListPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(searchParams.get('q') || '');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const [activeTab, setActiveTab] = useState('all');
@@ -52,6 +54,21 @@ function TasksListPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    setQuery(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  function updateQuery(value) {
+    setQuery(value);
+    const nextParams = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      nextParams.set('q', value);
+    } else {
+      nextParams.delete('q');
+    }
+    setSearchParams(nextParams, { replace: true });
+  }
 
   async function loadData() {
     setLoading(true);
@@ -132,7 +149,9 @@ function TasksListPage() {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      const keyword = `${task.judul || ''} ${task.deskripsi || ''}`.toLowerCase();
+      const labelText = (task.labels || []).map((label) => label.nama || '').join(' ');
+      const memberText = (task.members || []).map((member) => `${member.nama || ''} ${member.email || ''}`).join(' ');
+      const keyword = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText} ${memberText}`.toLowerCase();
       const matchQuery = keyword.includes(query.toLowerCase());
       const matchStatus = status ? task.status === status : true;
       const matchPriority = priority ? task.prioritas === priority : true;
@@ -190,7 +209,7 @@ function TasksListPage() {
             <input
               placeholder="Cari judul atau deskripsi task..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => updateQuery(e.target.value)}
             />
           </div>
           <select value={status} onChange={(e) => setStatus(e.target.value)}>

@@ -2060,3 +2060,30 @@ button:disabled {
 }
 .task-page-grid-clean { display: block; }
 .board-workspace .board-main-area-clean { overflow-x: auto; }
+
+/* Topbar redesign: hamburger removed, search is functional */
+.search-box-active {
+  flex: 1;
+  max-width: 860px;
+  margin-left: 0;
+}
+
+.search-box-active input {
+  width: 100%;
+}
+
+.search-clear-btn {
+  border: 1px solid var(--line, #eadfcf);
+  background: #fffaf3;
+  color: #8b6335;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.search-clear-btn:hover {
+  background: #f3e6d4;
+}

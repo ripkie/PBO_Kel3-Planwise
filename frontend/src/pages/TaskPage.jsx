@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DragDropContext } from '@hello-pangea/dnd';
 import Layout from '../components/Layout';
 import TaskColumn from '../components/TaskColumn';
@@ -42,6 +43,8 @@ function TaskContent() {
   const [editTask, setEditTask] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filters, setFilters] = useState({ labelId: '', priority: '', status: '', sortBy: '' });
+  const [searchParams] = useSearchParams();
+  const searchTerm = (searchParams.get('q') || '').trim().toLowerCase();
 
   useEffect(() => {
     fetchLabels();
@@ -49,7 +52,7 @@ function TaskContent() {
 
   useEffect(() => {
     fetchTasks();
-  }, [filters]);
+  }, [filters, searchTerm]);
 
   async function fetchLabels() {
     try {
@@ -65,9 +68,16 @@ function TaskContent() {
       const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
       const data = await getTasks(params);
       const list = Array.isArray(data) ? data : [];
+      const searchedList = searchTerm
+        ? list.filter((task) => {
+            const labelText = (task.labels || []).map((label) => label.nama || '').join(' ');
+            const haystack = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText}`.toLowerCase();
+            return haystack.includes(searchTerm);
+          })
+        : list;
       const newColumns = COLUMNS.map(col => ({
         ...col,
-        tasks: list.filter(t => t.status === col.status).map(mapTask),
+        tasks: searchedList.filter(t => t.status === col.status).map(mapTask),
       }));
       setColumns(newColumns);
     } catch (err) {
@@ -185,7 +195,7 @@ function TaskContent() {
       <div className="board-header board-header-clean">
         <div className="board-title-block">
           <h2>Task Board</h2>
-          <p>Fokus untuk menggeser task berdasarkan progres kerja. Kelola label di halaman Labels.</p>
+          <p>{searchTerm ? `Menampilkan hasil pencarian untuk: ${searchParams.get('q')}` : 'Fokus untuk menggeser task berdasarkan progres kerja. Kelola label di halaman Labels.'}</p>
         </div>
 
         <div className="board-actions board-actions-clean">

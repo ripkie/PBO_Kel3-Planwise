@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
 import { getCurrentUser } from '../services/authService';
@@ -9,6 +9,8 @@ import { getNotificationsByUser } from '../services/notificationService';
 
 function DashboardPage() {
   const user = getCurrentUser();
+  const [searchParams] = useSearchParams();
+  const searchTerm = (searchParams.get('q') || '').trim().toLowerCase();
   const [tasks, setTasks] = useState([]);
   const [overdue, setOverdue] = useState([]);
   const [histories, setHistories] = useState([]);
@@ -48,12 +50,20 @@ function DashboardPage() {
   }, [tasks]);
 
   const completion = stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
-  const upcoming = tasks
+  const searchedTasks = searchTerm
+    ? tasks.filter((task) => {
+        const labelText = (task.labels || []).map((label) => label.nama || '').join(' ');
+        const haystack = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText}`.toLowerCase();
+        return haystack.includes(searchTerm);
+      })
+    : tasks;
+
+  const upcoming = searchedTasks
     .filter((task) => task.deadline && task.status !== 'DONE')
     .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
     .slice(0, 5);
 
-  const recentTasks = tasks.slice(0, 5);
+  const recentTasks = searchedTasks.slice(0, 5);
   const unreadCount = notifications.filter((notif) => !notif.isRead).length;
 
   return (
@@ -83,7 +93,7 @@ function DashboardPage() {
       <section className="dashboard-grid">
         <div className="panel-card">
           <div className="panel-header">
-            <h3>Recent Tasks</h3>
+            <h3>{searchTerm ? `Search Result: ${searchParams.get('q')}` : 'Recent Tasks'}</h3>
             <Link className="mini-link" to="/board">Open Board</Link>
           </div>
           <div className="simple-list">

@@ -1,18 +1,25 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import NotificationPanel from './NotificationPanel';
 import { getCurrentUser, getUserInitials, logoutUser } from '../services/authService';
 import { getUnreadNotifications } from '../services/notificationService';
 
 function Topbar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showNotif, setShowNotif] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchValue, setSearchValue] = useState(searchParams.get('q') || '');
   const user = getCurrentUser();
 
   useEffect(() => {
     loadUnreadCount();
   }, [showNotif]);
+
+  useEffect(() => {
+    setSearchValue(searchParams.get('q') || '');
+  }, [searchParams]);
 
   async function loadUnreadCount() {
     try {
@@ -23,6 +30,26 @@ function Topbar() {
     }
   }
 
+  function handleSearchChange(e) {
+    const value = e.target.value;
+    setSearchValue(value);
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (value.trim()) {
+      nextParams.set('q', value);
+    } else {
+      nextParams.delete('q');
+    }
+    setSearchParams(nextParams, { replace: true });
+  }
+
+  function handleSearchFocus() {
+    const searchablePages = ['/dashboard', '/tasks', '/board', '/labels', '/history'];
+    if (!searchablePages.includes(location.pathname)) {
+      navigate('/tasks');
+    }
+  }
+
   async function handleLogout() {
     await logoutUser();
     navigate('/login');
@@ -30,11 +57,26 @@ function Topbar() {
 
   return (
     <header className="topbar" style={{ position: 'relative' }}>
-      <button className="icon-btn">☰</button>
-      <div className="search-box">
+      <div className="search-box search-box-active">
         <span>⌕</span>
-        <input placeholder="Search tasks, projects, or anything..." />
-        <kbd>Ctrl + K</kbd>
+        <input
+          value={searchValue}
+          onChange={handleSearchChange}
+          onFocus={handleSearchFocus}
+          placeholder="Search tasks, descriptions, labels..."
+        />
+        {searchValue ? (
+          <button
+            type="button"
+            className="search-clear-btn"
+            onClick={() => handleSearchChange({ target: { value: '' } })}
+            title="Bersihkan pencarian"
+          >
+            ×
+          </button>
+        ) : (
+          <kbd>Ctrl + K</kbd>
+        )}
       </div>
       <div className="topbar-actions">
         <button
