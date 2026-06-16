@@ -46,4 +46,8 @@ public class HistoryService {
     public List<History> getHistoryList() {
         return historyRepository.findAll();
     }
+
+    public List<History> getAllHistorySorted() {
+    return historyRepository.findAllByOrderByHistoryAtDesc();
+}
 }

@@ -32,6 +32,11 @@ public class HistoryController {
         return ResponseEntity.ok(historyService.getHistoryByManagementTask(managementTaskId));
     }
 
+    @GetMapping("/sorted")
+    public ResponseEntity<List<History>> getAllSorted() {
+        return ResponseEntity.ok(historyService.getAllHistorySorted());
+    }
+
     // GET /api/histories - semua riwayat
     @GetMapping
     public ResponseEntity<List<History>> getAll() {
