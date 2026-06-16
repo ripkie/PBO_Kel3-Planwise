@@ -16,7 +16,7 @@ function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-icon">✓</div>
+        <img src="/planwise-logo.png" alt="PlanWise Logo" className="brand-logo" />
         <span>PlanWise</span>
       </div>
 

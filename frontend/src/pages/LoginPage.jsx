@@ -47,7 +47,7 @@ function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="brand login-brand">
-          <div className="brand-icon">✓</div>
+          <img src="/planwise-logo.png" alt="PlanWise Logo" className="brand-logo" />
           <span>PlanWise</span>
         </div>
         <h1>{mode === 'login' ? 'Welcome back' : 'Create account'}</h1>
