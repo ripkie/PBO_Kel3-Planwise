@@ -26,7 +26,6 @@ public class UserService {
                 .nama(request.nama())
                 .email(request.email())
                 .password(request.password())
-                .role(request.role() == null || request.role().isBlank() ? "USER" : request.role())
                 .build();
 
         return userRepository.save(user);
