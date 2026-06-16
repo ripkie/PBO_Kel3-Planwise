@@ -1,12 +1,24 @@
 import api from '../api/api';
+import { getCurrentUser } from './authService';
+
+export function getCurrentUserId() {
+  return getCurrentUser()?.id || null;
+}
 
 export async function getTasks(params = {}) {
-  const response = await api.get('/tasks', { params });
+  const userId = getCurrentUserId();
+  const endpoint = userId ? `/tasks/my/${userId}` : '/tasks';
+  const response = await api.get(endpoint, { params });
   return response.data;
 }
 
 export async function createTask(task) {
-  const response = await api.post('/tasks', task);
+  const userId = getCurrentUserId();
+  const payload = userId && !task.ownerId
+    ? { ...task, ownerId: userId }
+    : task;
+
+  const response = await api.post('/tasks', payload);
   return response.data;
 }
 
@@ -39,13 +51,24 @@ export async function deleteLabel(labelId) {
 }
 
 export async function getKanbanBoard() {
-  const response = await api.get('/tasks/kanban');
-  return response.data;
+  const tasks = await getTasks();
+  return {
+    TODO: tasks.filter((task) => task.status === 'TODO'),
+    IN_PROGRESS: tasks.filter((task) => task.status === 'IN_PROGRESS'),
+    REVIEW: tasks.filter((task) => task.status === 'REVIEW'),
+    DONE: tasks.filter((task) => task.status === 'DONE'),
+  };
 }
 
 export async function getOverdueTasks() {
-  const response = await api.get('/tasks/overdue');
-  return response.data;
+  const tasks = await getTasks();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return tasks.filter((task) => {
+    if (!task.deadline || task.status === 'DONE') return false;
+    return new Date(task.deadline) < today;
+  });
 }
 
 export async function notifyOverdueTasks() {

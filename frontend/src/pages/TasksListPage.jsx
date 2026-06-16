@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { getCurrentUser } from '../services/authService';
 import { getTasks } from '../services/taskService';
 import { getUsers } from '../services/userService';
 import {
@@ -36,7 +37,12 @@ function getInitials(name = 'User') {
     .toUpperCase();
 }
 
+function isAssignedToCurrentUser(task, currentUser) {
+  return Boolean(currentUser?.id && task?.assignedTo?.id === currentUser.id);
+}
+
 function TasksListPage() {
+  const currentUser = getCurrentUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
@@ -151,7 +157,9 @@ function TasksListPage() {
     return tasks.filter((task) => {
       const labelText = (task.labels || []).map((label) => label.nama || '').join(' ');
       const memberText = (task.members || []).map((member) => `${member.nama || ''} ${member.email || ''}`).join(' ');
-      const keyword = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText} ${memberText}`.toLowerCase();
+      const ownerText = `${task.owner?.nama || ''} ${task.owner?.email || ''}`;
+      const assignedText = `${task.assignedTo?.nama || ''} ${task.assignedTo?.email || ''}`;
+      const keyword = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText} ${memberText} ${ownerText} ${assignedText}`.toLowerCase();
       const matchQuery = keyword.includes(query.toLowerCase());
       const matchStatus = status ? task.status === status : true;
       const matchPriority = priority ? task.prioritas === priority : true;
@@ -160,17 +168,19 @@ function TasksListPage() {
         activeTab === 'all' ? true
           : activeTab === 'group' ? type === 'GROUP'
           : activeTab === 'deadline' ? type === 'DEADLINE' || Boolean(task.isOverdue)
+          : activeTab === 'assigned' ? isAssignedToCurrentUser(task, currentUser)
           : type === 'PERSONAL' || type === 'TASK';
       return matchQuery && matchStatus && matchPriority && matchTab;
     });
-  }, [tasks, query, status, priority, activeTab]);
+  }, [tasks, query, status, priority, activeTab, currentUser]);
 
   const summary = useMemo(() => ({
     total: tasks.length,
     personal: tasks.filter((task) => ['PERSONAL', 'TASK'].includes(getType(task))).length,
     group: tasks.filter((task) => getType(task) === 'GROUP').length,
     deadline: tasks.filter((task) => getType(task) === 'DEADLINE' || task.isOverdue).length,
-  }), [tasks]);
+    assigned: tasks.filter((task) => isAssignedToCurrentUser(task, currentUser)).length,
+  }), [tasks, currentUser]);
 
   const availableUsers = users.filter((user) => {
     const members = selectedGroup?.members || [];
@@ -183,13 +193,13 @@ function TasksListPage() {
         <div>
           <p className="eyebrow">Task Workspace</p>
           <h1>My Tasks</h1>
-          <p>Kelola personal task, group task, deadline, member, dan PIC dalam satu workspace.</p>
+          <p>Task di halaman ini sudah difilter berdasarkan akun login: {currentUser?.nama || 'User'}.</p>
         </div>
         <div className="hero-actions-stack">
           <div className="hero-metrics">
-            <span><b>{summary.total}</b>Total</span>
+            <span><b>{summary.total}</b>Total Saya</span>
             <span><b>{summary.group}</b>Group</span>
-            <span><b>{summary.deadline}</b>Deadline</span>
+            <span><b>{summary.assigned}</b>Assigned</span>
           </div>
           <button className="primary-btn" onClick={() => setShowCreateGroup(true)}>＋ New Group Task</button>
         </div>
@@ -197,9 +207,10 @@ function TasksListPage() {
 
       <section className="panel-card page-section task-list-panel tasks-workspace-panel">
         <div className="task-tabs">
-          <button className={activeTab === 'all' ? 'active' : ''} onClick={() => setActiveTab('all')}>All Tasks</button>
+          <button className={activeTab === 'all' ? 'active' : ''} onClick={() => setActiveTab('all')}>All Tasks <span>{summary.total}</span></button>
           <button className={activeTab === 'personal' ? 'active' : ''} onClick={() => setActiveTab('personal')}>Personal <span>{summary.personal}</span></button>
           <button className={activeTab === 'group' ? 'active' : ''} onClick={() => setActiveTab('group')}>Group <span>{summary.group}</span></button>
+          <button className={activeTab === 'assigned' ? 'active' : ''} onClick={() => setActiveTab('assigned')}>Assigned <span>{summary.assigned}</span></button>
           <button className={activeTab === 'deadline' ? 'active' : ''} onClick={() => setActiveTab('deadline')}>Deadline <span>{summary.deadline}</span></button>
         </div>
 
@@ -207,7 +218,7 @@ function TasksListPage() {
           <div className="list-search">
             <span>⌕</span>
             <input
-              placeholder="Cari judul atau deskripsi task..."
+              placeholder="Cari task milik akun ini..."
               value={query}
               onChange={(e) => updateQuery(e.target.value)}
             />
@@ -228,7 +239,7 @@ function TasksListPage() {
         </div>
 
         {loading && <p className="empty-state">Memuat task...</p>}
-        {!loading && filteredTasks.length === 0 && <p className="empty-state">Belum ada task yang sesuai filter.</p>}
+        {!loading && filteredTasks.length === 0 && <p className="empty-state">Belum ada task yang sesuai filter untuk akun ini.</p>}
 
         {!loading && filteredTasks.length > 0 && (
           <div className="task-card-grid-pro">
@@ -258,17 +269,17 @@ function TasksListPage() {
                         ))}
                         {(task.members || []).length === 0 && <span>＋</span>}
                       </div>
-                      <small>{(task.members || []).length || 0} member</small>
+                      <small>{(task.members || []).length || 0} member · PIC: {task.assignedTo?.nama || 'Belum ada'}</small>
                     </div>
                   ) : (
-                    <div className="solo-preview">Personal workspace</div>
+                    <div className="solo-preview">Owner: {task.owner?.nama || currentUser?.nama || 'Saya'}</div>
                   )}
 
                   <div className="task-pro-actions">
                     {isGroup ? (
                       <button onClick={() => openGroupDetail(task)}>Kelola Group</button>
                     ) : (
-                      <button disabled>Detail Personal</button>
+                      <button disabled>Personal Task</button>
                     )}
                   </div>
                 </article>
@@ -282,7 +293,7 @@ function TasksListPage() {
         <div className="modal-backdrop">
           <div className="task-modal group-modal">
             <h3>Buat Group Task</h3>
-            <p className="modal-subtitle">Task ini bisa memiliki member dan assigned PIC.</p>
+            <p className="modal-subtitle">Task ini akan dimiliki oleh akun login dan bisa memiliki member/PIC.</p>
             <form onSubmit={handleCreateGroupTask}>
               <label>Judul</label>
               <input

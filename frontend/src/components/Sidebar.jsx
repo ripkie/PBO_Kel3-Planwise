@@ -4,6 +4,7 @@ const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: '⌂' },
   { path: '/tasks', label: 'My Tasks', icon: '☑' },
   { path: '/board', label: 'Board', icon: '▤' },
+  { path: '/groups', label: 'Groups', icon: '◉' },
   { path: '/calendar', label: 'Calendar', icon: '□' },
   { path: '/labels', label: 'Labels', icon: '◇' },
   { path: '/history', label: 'History', icon: '↺' },

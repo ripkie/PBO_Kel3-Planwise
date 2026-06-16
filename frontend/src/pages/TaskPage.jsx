@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getCurrentUser } from '../services/authService';
 import { useSearchParams } from 'react-router-dom';
 import { DragDropContext } from '@hello-pangea/dnd';
 import Layout from '../components/Layout';
@@ -36,6 +37,7 @@ function mapTask(task) {
 }
 
 function TaskContent() {
+  const currentUser = getCurrentUser();
   const [columns, setColumns] = useState(COLUMNS.map(c => ({ ...c, tasks: [] })));
   const [labels, setLabels] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -65,19 +67,37 @@ function TaskContent() {
 
   async function fetchTasks() {
     try {
-      const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
-      const data = await getTasks(params);
+      const data = await getTasks();
       const list = Array.isArray(data) ? data : [];
-      const searchedList = searchTerm
-        ? list.filter((task) => {
-            const labelText = (task.labels || []).map((label) => label.nama || '').join(' ');
-            const haystack = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText}`.toLowerCase();
-            return haystack.includes(searchTerm);
-          })
-        : list;
+      const filteredList = list
+        .filter((task) => {
+          const labelText = (task.labels || []).map((label) => label.nama || '').join(' ');
+          const haystack = `${task.judul || ''} ${task.deskripsi || ''} ${task.status || ''} ${task.prioritas || ''} ${labelText}`.toLowerCase();
+          const matchesSearch = searchTerm ? haystack.includes(searchTerm) : true;
+          const matchesStatus = filters.status ? task.status === filters.status : true;
+          const matchesPriority = filters.priority ? task.prioritas === filters.priority : true;
+          const matchesLabel = filters.labelId
+            ? (task.labels || []).some((label) => label.id === filters.labelId)
+            : true;
+          return matchesSearch && matchesStatus && matchesPriority && matchesLabel;
+        })
+        .sort((a, b) => {
+          if (filters.sortBy === 'deadline') {
+            return new Date(a.deadline || '9999-12-31') - new Date(b.deadline || '9999-12-31');
+          }
+          if (filters.sortBy === 'priority') {
+            const order = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+            return (order[a.prioritas] ?? 3) - (order[b.prioritas] ?? 3);
+          }
+          if (filters.sortBy === 'createdAt') {
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+          }
+          return 0;
+        });
+
       const newColumns = COLUMNS.map(col => ({
         ...col,
-        tasks: searchedList.filter(t => t.status === col.status).map(mapTask),
+        tasks: filteredList.filter(t => t.status === col.status).map(mapTask),
       }));
       setColumns(newColumns);
     } catch (err) {
@@ -158,7 +178,9 @@ function TaskContent() {
       deadline: form.deadline || null,
       prioritas: form.priority,
       status: editTask ? editTask.status : 'TODO',
+      taskType: editTask?.type || 'TASK',
       labelIds: form.labelIds,
+      ownerId: currentUser?.id,
     };
 
     try {

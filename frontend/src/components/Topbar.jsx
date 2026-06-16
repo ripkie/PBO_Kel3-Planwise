@@ -44,7 +44,7 @@ function Topbar() {
   }
 
   function handleSearchFocus() {
-    const searchablePages = ['/dashboard', '/tasks', '/board', '/labels', '/history'];
+    const searchablePages = ['/dashboard', '/tasks', '/board', '/groups', '/labels', '/history'];
     if (!searchablePages.includes(location.pathname)) {
       navigate('/tasks');
     }

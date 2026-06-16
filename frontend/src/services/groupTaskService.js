@@ -1,7 +1,17 @@
 import api from '../api/api';
+import { getCurrentUser } from './authService';
 
 export async function createGroupTask(groupTask) {
-  const response = await api.post('/group-tasks', groupTask);
+  const currentUser = getCurrentUser();
+  const payload = currentUser?.id
+    ? {
+        ...groupTask,
+        owner: { id: currentUser.id },
+        ownerId: currentUser.id,
+      }
+    : groupTask;
+
+  const response = await api.post('/group-tasks', payload);
   return response.data;
 }
 

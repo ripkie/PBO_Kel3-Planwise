@@ -6,6 +6,7 @@ import BoardPage from '../pages/BoardPage';
 import CalendarPage from '../pages/CalendarPage';
 import LabelsPage from '../pages/LabelsPage';
 import HistoryPage from '../pages/HistoryPage';
+import GroupsPage from '../pages/GroupsPage';
 import { getCurrentUser } from '../services/authService';
 
 function ProtectedRoute({ children }) {
@@ -31,6 +32,7 @@ function AppRoutes() {
         <Route path="/board" element={<ProtectedRoute><BoardPage /></ProtectedRoute>} />
         <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
         <Route path="/labels" element={<ProtectedRoute><LabelsPage /></ProtectedRoute>} />
+        <Route path="/groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
         <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
