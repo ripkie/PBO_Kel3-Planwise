@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
+import { LayoutDashboard, CheckSquare, KanbanSquare, Users, CalendarDays, Tags, History as HistoryIcon } from 'lucide-react';
 
 const menuItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: '⌂' },
-  { path: '/tasks', label: 'My Tasks', icon: '☑' },
-  { path: '/board', label: 'Board', icon: '▤' },
-  { path: '/groups', label: 'Groups', icon: '◉' },
-  { path: '/calendar', label: 'Calendar', icon: '□' },
-  { path: '/labels', label: 'Labels', icon: '◇' },
-  { path: '/history', label: 'History', icon: '↺' },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/tasks', label: 'My Tasks', icon: CheckSquare },
+  { path: '/board', label: 'Board', icon: KanbanSquare },
+  { path: '/groups', label: 'Groups', icon: Users },
+  { path: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { path: '/labels', label: 'Labels', icon: Tags },
+  { path: '/history', label: 'History', icon: HistoryIcon },
 ];
 
 function Sidebar() {
@@ -27,7 +28,7 @@ function Sidebar() {
             to={item.path}
             className={`sidebar-link ${location.pathname === item.path ? 'active' : ''}`}
           >
-            <span>{item.icon}</span>
+            {(() => { const Icon = item.icon; return <Icon size={18} strokeWidth={2} />; })()}
             {item.label}
           </Link>
         ))}
