@@ -6,6 +6,7 @@ import com.planwise.backend.entity.User;
 import com.planwise.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.util.List;
 
 import java.util.UUID;
 
@@ -50,4 +51,8 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User tidak ditemukan: " + id));
     }
+
+    public List<User> getAllUsers() {
+    return userRepository.findAll();
+}
 }
